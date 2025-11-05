@@ -1,8 +1,22 @@
 
+#include "graphics.h"
 #include "loadObjFile.h"
 #include "math3d.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+
+
+// wrapper compatible qsort_r
+int compare_wrapper(const void *a, const void *b, void *cam) {
+    const TriangleRenderData *ta = (const TriangleRenderData *)a;
+    const TriangleRenderData *tb = (const TriangleRenderData *)b;
+    return -compare(&ta->tri, &tb->tri, (const Vector3d *)cam);
+}
+void sortTriangleArray(TriangleRenderData *triangleBuffer, int trueSize, const Vector3d *cam) {
+    qsort_r(triangleBuffer, trueSize, sizeof(TriangleRenderData),
+            compare_wrapper, (void*)cam);
+}
 
 ObjModel loadObjFile(const char *filename) {
     ObjModel model = {NULL, 0};

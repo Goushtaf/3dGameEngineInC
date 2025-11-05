@@ -1,6 +1,6 @@
 #include "math3d.h"
 #include <math.h>
-
+#include <stdlib.h>
 
 void addScalarToThis(Vector3d *v, float dx, float dy, float dz){
     v -> x += dx;
@@ -115,21 +115,18 @@ Vector3d midle(const Triangle3d *tri){
         (tri ->vertices[0].z + tri -> vertices[1].z + tri -> vertices[2].z)/3};
     return v;
 }
-
 float distanceBetween(const Vector3d *v1, const Vector3d *v2){
-    Vector3d dif = subVector(v1, v2);
-    return sqrtf((dif.x*dif.x)+(dif.y*dif.y)*(dif.z*dif.z));
+    Vector3d a = subVector(v1, v2);
+    return sqrtf(a.x*a.x+a.y*a.y+a.z*a.z);
 }
-int compare(const Triangle3d *t1, const Triangle3d *t2, const Vector3d *cam){
-    Vector3d t1Mid = midle(t1);
-    Vector3d t2Mid = midle(t2);
-    float d1 = distanceBetween(&t1Mid, cam);
-    float d2 = distanceBetween(&t2Mid, cam);
-    if (d1 < d2){
-        return -1;
-    } else if(d1 > d2){
-        return 1;
-    }else{
-        return 0;
-    }
+
+int compare(const Triangle3d *t1, const Triangle3d *t2, const Vector3d *cam) {
+    Vector3d m1 = midle(t1);
+    Vector3d m2 = midle(t2);
+
+    float d1 = distanceBetween(&m1, cam);
+    float d2 = distanceBetween(&m2, cam);
+
+    return  (d1 > d2) - (d1 < d2);
 }
+

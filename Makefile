@@ -1,19 +1,24 @@
-
-# === Makefile pour ton projet Raylib ===
+# --- Variables ---
 CC = gcc
-CFLAGS = -Wall -std=c99 -I/mingw64/include
-LDFLAGS = -L/mingw64/lib -lraylib -lopengl32 -lgdi32 -lwinmm
-
+CFLAGS = -Wall -Wextra -std=c99 `pkg-config --cflags sdl2`
+LDFLAGS = `pkg-config --libs sdl2` -lSDL2_gfx -lm
+SRC = main.c math3d.c graphics.c loadObjFile.c handleInput.c
+OBJ = $(SRC:.c=.o)
 TARGET = main
-SRC = main.c
 
+# --- Règles principales ---
 all: $(TARGET)
 
-$(TARGET): $(SRC)
-	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(LDFLAGS)
+$(TARGET): $(OBJ)
+	$(CC) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Compile puis exécute
 run: $(TARGET)
 	./$(TARGET)
 
+# Nettoyage
 clean:
-	rm -f $(TARGET)
+	rm -f $(OBJ) $(TARGET)

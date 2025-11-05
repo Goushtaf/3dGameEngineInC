@@ -1,0 +1,274 @@
+#include <stdio.h>
+#include <math.h>
+#include <SDL2/SDL.h>
+#include <stdbool.h>
+#include <SDL2/SDL2_gfxPrimitives.h>
+
+static int width = 800;
+static int height = 450;
+
+
+// Types
+typedef struct {
+    float x, y;
+} Vector2d;
+
+typedef struct {
+    float x, y, z;
+} Vector3d;
+void addScalarToThis(Vector3d *v, float dx, float dy, float dz){
+    v -> x += dx;
+    v -> y += dy;
+    v -> z += dz;
+}
+void addVectorToThis(Vector3d *this, Vector3d *that){
+    this -> x += (that -> x);
+    this -> y += (that -> y);
+    this -> z += (that -> z);
+}
+void subtractVectorToThis(Vector3d *this, Vector3d *that){
+    this -> x -= (that -> x);
+    this -> y -= (that -> y);
+    this -> z -= (that -> z);
+}
+Vector3d addVector(Vector3d v1, Vector3d v2){
+    Vector3d v = {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
+    return v;
+}
+Vector3d subVector(Vector3d v1, Vector3d v2){
+    Vector3d v = {v1.x - v2.x, v1.y - v2.y, v1.z - v2.z};
+    return v;
+}
+float magnitude(Vector3d v){
+    return sqrtf(v.x*v.x+v.y*v.y+v.z*v.z);
+}
+Vector3d normalize(Vector3d v) {
+    float mag = magnitude(v);
+    if (mag == 0.0f) return (Vector3d){0, 0, 0};
+    return (Vector3d){v.x / mag, v.y / mag, v.z / mag};
+}
+typedef struct {
+    Vector3d vertices[3];
+} Triangle3d;
+
+// Corrigez la fonction getNorm
+Vector3d getNorm(Triangle3d tri){
+    Vector3d a = subVector(tri.vertices[1], tri.vertices[0]);
+    Vector3d b = subVector(tri.vertices[2], tri.vertices[0]); // Correction ici !
+    Vector3d norm = {
+        (a.y*b.z)-(a.z*b.y),
+        (a.z*b.x)-(a.x*b.z),
+        (a.x*b.y)-(a.y*b.x)
+    };
+    return norm;
+}
+float dotProduct(Vector3d v1, Vector3d v2){
+    return (v1.x*v2.x + v1.y*v2.y + v1.z*v2.z);
+}
+float perpendicularity(Vector3d v1, Vector3d v2){
+    float dot = dotProduct(v1, v2);
+    float mag = magnitude(v1) * magnitude(v2);
+
+    if (mag == 0.0f) return 0.0f;
+    float ratio = fabsf(dot / mag);
+    printf("%f\n", ratio);
+    return 1.0f - ratio;
+}
+
+typedef struct {
+    Triangle3d faces[12];
+} Cube3d;
+
+typedef struct {
+    float m[4][4];
+} Mat4x4;
+
+// Initialisation du cube
+Cube3d initCube(void) {
+    Cube3d cube = {
+        .faces = {
+            // south
+            {{{0,0,0},{0,1,0},{1,1,0}}},
+            {{{0,0,0},{1,1,0},{1,0,0}}},
+            // east
+            {{{1,0,0},{1,1,0},{1,1,1}}},
+            {{{1,0,0},{1,1,1},{1,0,1}}},
+            // north
+            {{{1,0,1},{1,1,1},{0,1,1}}},
+            {{{1,0,1},{0,1,1},{0,0,1}}},
+            // west
+            {{{0,0,1},{0,1,1},{0,1,0}}},
+            {{{0,0,1},{0,1,0},{0,0,0}}},
+            // top
+            {{{0,1,0},{0,1,1},{1,1,1}}},
+            {{{0,1,0},{1,1,1},{1,1,0}}},
+            // bottom
+            {{{1,0,1},{0,0,1},{0,0,0}}},
+            {{{1,0,1},{0,0,0},{1,0,0}}}
+        }
+    };
+    return cube;
+}
+
+// Multiplication matrice/vecteur
+void MultiplyMatrixVector(const Vector3d *i, Vector3d *o, const Mat4x4 *m) {
+    o->x = i->x * m->m[0][0] + i->y * m->m[1][0] + i->z * m->m[2][0] + m->m[3][0];
+    o->y = i->x * m->m[0][1] + i->y * m->m[1][1] + i->z * m->m[2][1] + m->m[3][1];
+    o->z = i->x * m->m[0][2] + i->y * m->m[1][2] + i->z * m->m[2][2] + m->m[3][2];
+
+    float w = i->x * m->m[0][3] + i->y * m->m[1][3] + i->z * m->m[2][3] + m->m[3][3];
+    if (w != 0.0f) {
+        o->x /= w;
+        o->y /= w;
+        o->z /= w;
+    }
+}
+
+// Convertit coordonnées normalisées en pixels
+Vector2d FromCenteredNormalized(float x, float y){
+    Vector2d result;
+    result.x = x * (width / 2.0f) + (width / 2.0f);
+    result.y = y * (height / 2.0f) + (height / 2.0f);
+    return result;
+}
+
+// Dessine une ligne 2D
+void DrawLine2d(SDL_Renderer *renderer, const Vector2d *start, const Vector2d *end) {
+      SDL_RenderDrawLine(renderer, (int)start ->x, (int)start ->y, (int)end->x, (int)end->y);
+}
+
+float UnNormalizeAlpha(float alpha){
+    return (int)(alpha*255);
+}
+
+
+
+// Dessine un triangle projeté
+void DrawTriangle3d(SDL_Renderer *renderer, const Triangle3d *tri, float alpha) {
+    Vector2d a = FromCenteredNormalized(tri->vertices[0].x, tri->vertices[0].y);
+    Vector2d b = FromCenteredNormalized(tri->vertices[1].x, tri->vertices[1].y);
+    Vector2d c = FromCenteredNormalized(tri->vertices[2].x, tri->vertices[2].y);
+    filledTrigonRGBA(renderer, a.x, a.y, b.x, b.y, c.x, c.y, 0, 0, 0, alpha);
+    DrawLine2d(renderer, &a, &b);
+    DrawLine2d(renderer, &b, &c);
+    DrawLine2d(renderer, &a, &c);
+}
+void MoveTriangle(Triangle3d *tri, float OffsetX, float OffsetY, float OffsetZ){
+    addScalarToThis(&tri-> vertices[0], OffsetX, OffsetY, OffsetZ);
+    addScalarToThis(&tri-> vertices[1], OffsetX, OffsetY, OffsetZ);
+    addScalarToThis(&tri-> vertices[2], OffsetX, OffsetY, OffsetZ);
+}
+
+// Programme principal
+int main(void) {
+    
+    SDL_Init(SDL_INIT_VIDEO);
+
+    SDL_Window *window = SDL_CreateWindow(
+        "3dGameEngine (SDL2)", 
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
+        width, height, 0
+    );
+    
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    Cube3d cube = initCube();
+    printf("3");
+    float fNear = 0.1f;
+    float fFar = 1000.0f;
+    float fFov = 90.0f;
+    float fAspectRatio = (float)height / (float)width;
+    float fFovRad = 1.0f / tanf(fFov * 0.5f * (M_PI / 180.0f));
+    Vector3d vLight = {1.0f, 1.0f, 0.0f};
+    Mat4x4 matProj = {0};
+    Vector3d camera = {0.0f, 0.0f, 0.0f}; // Position de la caméra
+    matProj.m[0][0] = fAspectRatio * fFovRad;
+    matProj.m[1][1] = fFovRad;
+    matProj.m[2][2] = fFar / (fFar - fNear);
+    matProj.m[3][2] = (-fFar * fNear) / (fFar - fNear);
+    matProj.m[2][3] = 1.0f;
+    matProj.m[3][3] = 0.0f;
+
+    bool running = true;
+    Uint64 start = SDL_GetPerformanceCounter();
+    double freq = (double)SDL_GetPerformanceFrequency();
+
+    while (running) {
+
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) running = false;
+        }
+
+        // Calcul du temps écoulé
+        Uint64 now = SDL_GetPerformanceCounter();
+        double time = (double)(now - start) / freq;
+        double timeInRad = time;
+
+        // Matrice de rotation
+        Mat4x4 matRot = {0};
+        matRot.m[0][0] = cos(timeInRad);
+        matRot.m[0][1] = -sin(timeInRad);
+        matRot.m[1][0] = cos(timeInRad) * sin(timeInRad);
+        matRot.m[1][1] = cos(timeInRad) * cos(timeInRad);
+        matRot.m[1][2] = -sin(timeInRad);
+        matRot.m[2][0] = sin(timeInRad) * sin(timeInRad);
+        matRot.m[2][1] = cos(timeInRad) * sin(timeInRad);
+        matRot.m[2][2] = cos(timeInRad);
+        matRot.m[3][3] = 1.0f;
+
+        // Efface l’écran
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+
+        // Couleur de dessin (noir)
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+        for (int i = 0; i < 12; i++) {
+            Triangle3d tri = cube.faces[i];
+            Triangle3d triRotated;
+            Triangle3d triProjected;
+
+            MultiplyMatrixVector(&tri.vertices[0], &triRotated.vertices[0], &matRot);
+            MultiplyMatrixVector(&tri.vertices[1], &triRotated.vertices[1], &matRot);
+            MultiplyMatrixVector(&tri.vertices[2], &triRotated.vertices[2], &matRot);
+
+            MoveTriangle(&triRotated, -0.5f, -0.5f, 3.0f);
+            
+            // Calculer la normale et vérifier si la face est visible
+            Vector3d normal = normalize(getNorm(triRotated));
+            
+            Vector3d toCamera = subVector(camera, triRotated.vertices[0]);
+
+            toCamera = normalize(toCamera);
+
+            float dp = dotProduct(normal, toCamera);
+                // Test de visibilité : si la normale pointe vers la caméra
+            if (dp <= 0.0f) continue; 
+            
+           
+            float lightIntensity = dotProduct(normal, vLight);
+            
+            if (lightIntensity < 0.0f) lightIntensity = 0.0f;
+            lightIntensity = fabsf(1 - lightIntensity);
+            if (lightIntensity > 0.9)lightIntensity = 0.9f;
+            if (lightIntensity < 0.15f)lightIntensity = 0.15f;
+
+
+            
+            MultiplyMatrixVector(&triRotated.vertices[0], &triProjected.vertices[0], &matProj);
+            MultiplyMatrixVector(&triRotated.vertices[1], &triProjected.vertices[1], &matProj);
+            MultiplyMatrixVector(&triRotated.vertices[2], &triProjected.vertices[2], &matProj);
+            DrawTriangle3d(renderer, &triProjected, lightIntensity * 255);
+        
+        }   
+        SDL_RenderPresent(renderer);
+        SDL_Delay(16); // ≈60 fps
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 0;
+}

@@ -1,6 +1,5 @@
-#ifndef MATH3D_H
-#define MATH3D_H
-// Types
+#pragma once
+#include <stddef.h>
 typedef struct {
     float x, y;
 } Vector2d;
@@ -16,6 +15,8 @@ typedef struct {
 typedef struct {
     Triangle3d faces[12];
 } Cube3d;
+
+struct ObjModel;
 
 typedef struct {
     float m[4][4];
@@ -49,11 +50,11 @@ Cube3d initCube(void);
 
 void MoveTriangle(Triangle3d *tri, float OffsetX, float OffsetY, float OffsetZ);
 
-int compare(const Triangle3d *t1, const Triangle3d *t2, const Vector3d *cam);
-
 Vector3d midle(const Triangle3d *tri);
 
-#endif
+float distanceBetween(const Vector3d *v1, const Vector3d *v2);
+
+int compare(const Triangle3d *t1, const Triangle3d *t2, const Vector3d *cam);
 
 
 
