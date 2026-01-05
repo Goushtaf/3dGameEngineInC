@@ -44,6 +44,21 @@ Vector3d getNorm(const Triangle3d *tri){
     };
     return norm;
 }
+
+Vector3d vectorCrossProduct(const Vector3d *v1, const Vector3d *v2){
+    Vector3d v = {(v1->y)*(v2->z)-(v1->z)*(v2->y),
+        (v1->z)*(v2->x)-(v1->x)*(v2->z),
+        (v1->x)*(v2->y)-(v1->y)*(v2->x)
+    };
+    return v;
+}
+Vector3d mulVector(const Vector3d *v1, float scalar){
+    Vector3d result;
+    result.x = (v1->x)*scalar;
+    result.y = (v1->y)*scalar;
+    result.z = (v1->z)*scalar;
+    return result;
+}
 float dotProduct(Vector3d v1, Vector3d v2){
     return (v1.x*v2.x + v1.y*v2.y + v1.z*v2.z);
 }
@@ -129,4 +144,44 @@ int compare(const Triangle3d *t1, const Triangle3d *t2, const Vector3d *cam) {
 
     return  (d1 > d2) - (d1 < d2);
 }
+Mat4x4 createRotationMatrix(int axis, double fTheta){
+    Mat4x4 m = {};
+    if (axis < 0){
+        m.m[0][0] = 1.0f;
+		m.m[1][1] = cosf(fTheta);
+		m.m[1][2] = sinf(fTheta);
+		m.m[2][1] = -sinf(fTheta);
+		m.m[2][2] = cosf(fTheta);
+		m.m[3][3] = 1;
+    }else if (axis == 0){
+        m.m[0][0] = cosf(fTheta);
+        m.m[0][2] = sinf(fTheta);
+        m.m[1][1] = 1.0f;
+        m.m[2][0] = -sinf(fTheta);
+        m.m[2][2] = cosf(fTheta);
+        m.m[3][3] = 1.0f;
+    }else if (axis > 0){
+        m.m[0][0] = cosf(fTheta);
+		m.m[0][1] = sinf(fTheta);
+		m.m[1][0] = -sinf(fTheta);
+		m.m[1][1] = cosf(fTheta);
+		m.m[2][2] = 1.0f;
+		m.m[3][3] = 1.0f;
+    }
+    return m;
+}
 
+Mat4x4 multiplyMatrixMatrix(const Mat4x4 *m1, const Mat4x4 *m2) {
+    Mat4x4 result = {0};
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result.m[i][j] = 0.0f;
+            for (int k = 0; k < 4; ++k) {
+                result.m[i][j] += m1->m[i][k] * m2->m[k][j];
+            }
+        }
+    }
+
+    return result;
+}

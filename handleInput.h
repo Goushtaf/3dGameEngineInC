@@ -1,20 +1,27 @@
-#include <SDL2/SDL.h>
-#include <stdbool.h>
-#ifndef HANDLEINPUT
-#define HANDLEINPUT
+#ifndef HANDLE_INPUT_H
+#define HANDLE_INPUT_H
 
-typedef struct{
+#include <stdbool.h>
+
+typedef struct {
     bool quit;
+
     bool moveForward;
     bool moveBackward;
+    bool moveLeft;
+    bool moveRight;
     bool moveUp;
     bool moveDown;
-    bool moveRight;
-    bool moveLeft;
-    int mouseX;
+
+    int mouseX;      // position absolue
     int mouseY;
-    bool stop;
+    int mouseDeltaX; // mouvement relatif depuis la dernière frame
+    int mouseDeltaY;
+
+    bool mouseLeft;  // clic gauche
+    bool mouseRight; // clic droit
 } InputState;
 
-void handleInput(InputState * input);
+void handleInput(InputState *input);
+
 #endif

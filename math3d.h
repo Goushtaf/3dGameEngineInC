@@ -22,6 +22,10 @@ typedef struct {
     float m[4][4];
 } Mat4x4;
 
+typedef struct {
+    float a,b,c,d;
+} Plane3d;
+
 void addScalarToThis(Vector3d *v, float dx, float dy, float dz);
 
 void addVectorToThis(Vector3d *self, Vector3d *that);
@@ -32,11 +36,15 @@ Vector3d addVector(const Vector3d *v1, const Vector3d *v2);
 
 Vector3d subVector(const Vector3d *v1, const Vector3d *v2);
 
+Vector3d mulVector(const Vector3d *v1, float scalar);
+
 float magnitude(Vector3d v);
 
 Vector3d normalize(Vector3d v);
 
 Vector3d getNorm(const Triangle3d *tri);
+
+Vector3d vectorCrossProduct(const Vector3d *v1, const Vector3d *v2);
 
 float dotProduct(Vector3d v1, Vector3d v2);
 
@@ -55,6 +63,12 @@ Vector3d midle(const Triangle3d *tri);
 float distanceBetween(const Vector3d *v1, const Vector3d *v2);
 
 int compare(const Triangle3d *t1, const Triangle3d *t2, const Vector3d *cam);
+
+
+Mat4x4 multiplyMatrixMatrix(const Mat4x4 *m1, const Mat4x4 *m2);
+
+Mat4x4 createRotationMatrix(int axis, double fTheta);
+ 
 
 
 

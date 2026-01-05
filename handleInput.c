@@ -1,39 +1,50 @@
+#include <SDL2/SDL_scancode.h>
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 #include "handleInput.h"
 
-void handleInput(InputState *input){
+void handleInput(InputState *input) {
     SDL_Event event;
-     switch (event.type){
-        case SDL_QUIT:
-             input->quit = true; break;
-        case SDL_KEYDOWN:
-             switch (event.key.keysym.sym){
-                case SDLK_SPACE:
-                    input->stop = !(input->stop); break;
-                case SDLK_w:
-                    input->moveForward = true;
-                case SDLK_s:
-                    input->moveBackward = true;
-                case SDLK_d:
-                    input->moveRight = true;
-                case SDLK_a:
-                    input->moveLeft = true;
-        } 
-        case SDL_KEYUP:
-            switch (event.key.keysym.sym){
-                case SDLK_w:
-                    input->moveForward = false;
-                case SDLK_s:
-                    input->moveBackward = false;
-                case SDLK_d:
-                    input->moveRight = false;
-                case SDLK_a:
-                    input->moveLeft = false;
+
+    // Remet les deltas à zéro avant de lire les événements
+    input->mouseDeltaX = 0;
+    input->mouseDeltaY = 0;
+
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT)
+            input->quit = true;
+
+        // 🖱️ Mouvements de souris
+        else if (event.type == SDL_MOUSEMOTION) {
+            input->mouseX = -event.motion.x;
+            input->mouseY = event.motion.y;
+            input->mouseDeltaX += event.motion.xrel;
+            input->mouseDeltaY += event.motion.yrel;
         }
-        case SDL_MOUSEMOTION:
-            input->mouseX = event.motion.xrel;
-            input->mouseY = event.motion.yrel;
-            break;
-     }
+
+        // 🖱️ Clics souris
+        else if (event.type == SDL_MOUSEBUTTONDOWN) {
+            if (event.button.button == SDL_BUTTON_LEFT)
+                input->mouseLeft = true;
+            if (event.button.button == SDL_BUTTON_RIGHT)
+                input->mouseRight = true;
+        }
+        else if (event.type == SDL_MOUSEBUTTONUP) {
+            if (event.button.button == SDL_BUTTON_LEFT)
+                input->mouseLeft = false;
+            if (event.button.button == SDL_BUTTON_RIGHT)
+                input->mouseRight = false;
+        }
+    }
+
+    // ⌨️ Clavier
+    const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+
+    input->moveForward  = keystate[SDL_SCANCODE_W];
+    input->moveBackward = keystate[SDL_SCANCODE_S];
+    input->moveLeft     = keystate[SDL_SCANCODE_A];
+    input->moveRight    = keystate[SDL_SCANCODE_D];
+    input->moveUp       = keystate[SDL_SCANCODE_SPACE];
+    input->moveDown     = keystate[SDL_SCANCODE_LSHIFT];
 }
+

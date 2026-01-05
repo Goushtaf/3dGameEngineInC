@@ -1,7 +1,5 @@
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
-#include <math.h>
 #include <stdbool.h>
 
 #include "math3d.h"
@@ -10,8 +8,8 @@
 #include "handleInput.h"
 
 int main(void) {
-    int width = 800;
-    int height = 450;
+    int width = 1280;
+    int height = 1080;
     InputState inputState = {0};
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -20,7 +18,7 @@ int main(void) {
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 
         width, height, 0
     );
-    ObjModel model = loadObjFile("utah_teapot.obj");
+    ObjModel model = loadObjFile("mapTest1.obj");
     printf("Chargé %zu triangles !\n", model.count);
     TriangleRenderData triangleBuffer[model.count];
 
@@ -32,103 +30,163 @@ int main(void) {
     float fFar = 1000.0f;
     float fFov = 90.0f;
     float fAspectRatio = (float)height / (float)width;
-    float fFovRad = 1.0f / tanf(fFov * 0.5f * (M_PI / 180.0f));
+    float mouseSensibility = 0.1f;
     
-    float dx = -0.5f;
-    float dy = -0.5f;
-    float dz = 5.0f;
-    Vector3d vLight = {1.0f, 1.0f, 0.0f};
-    Mat4x4 matProj = {0};
-    Vector3d camera = {0.0f, 0.0f, 0.0f}; // Position de la caméra
-    matProj.m[0][0] = fAspectRatio * fFovRad;
-    matProj.m[1][1] = fFovRad;
-    matProj.m[2][2] = fFar / (fFar - fNear);
-    matProj.m[3][2] = (-fFar * fNear) / (fFar - fNear);
-    matProj.m[2][3] = 1.0f;
-    matProj.m[3][3] = 0.0f;
 
+       
+    float dx = -0.1f;
+    float dy = -0.1f;
+    float dz = 0.1f;
+    float moveSpeed = 10.0f;
+    Vector3d vLight = {1.0f, 1.0f, 0.0f};
+    Mat4x4 matProj = createProjectionMatrix(fAspectRatio, fFov, fFar, fNear); 
+    Vector3d camera = {0.0f, 0.0f, 0.0f}; // Position de la caméra
+    float fYaw = 0.0f;
+    float fXaw = 0.0f;
+    Vector3d vLookDir = {0.0f, 0.0f, 1.0f};  // Direction initiale : regarder vers +Z
+    
     bool running = true;
     Uint64 start = SDL_GetPerformanceCounter();
     double freq = (double)SDL_GetPerformanceFrequency();
+    float now = 0;
+    float last = 0;
+    float fElapsedTime;
+    
+
+
 
     while (running) {
-        
-        handleInput(&inputState);
-
-        if (inputState.quit){running = false;}
-        
-        int trueSize = 0;
+        last = now;
+        now = SDL_GetPerformanceCounter();
+        fElapsedTime = (double)((now - last) * 1000 / (double)SDL_GetPerformanceFrequency()) / 1000.0;
 
         // Calcul du temps écoulé
         Uint64 now = SDL_GetPerformanceCounter();
         double time = (double)(now - start) / freq;
         double timeInRad = time;
+  
+        handleInput(&inputState);
+        Vector3d vForward = mulVector(&vLookDir, moveSpeed * fElapsedTime);
+        Vector3d vUp = {0.0f, -1.0f, 0.0f}; // up vector utilisé pour le strafing
+
+        if (inputState.quit){running = false;}
+        if (inputState.moveForward){camera = addVector(&camera, &vForward);}
+        if (inputState.moveBackward){camera = subVector(&camera, &vForward);}
+        if (inputState.moveLeft || inputState.moveRight) {
+            Vector3d vRight = normalize(vectorCrossProduct(&vUp, &vLookDir)); // right = up x forward
+            Vector3d vStrafe = mulVector(&vRight, moveSpeed * fElapsedTime);
+            if (inputState.moveLeft)  camera = subVector(&camera, &vStrafe);
+            if (inputState.moveRight) camera = addVector(&camera, &vStrafe);
+        }
+        if (inputState.moveUp){
+            camera = subVector(&vUp, &camera);
+        }
+        if (inputState.moveDown) {
+            camera = addVector(&vUp, &camera);
+        }
+        if (inputState.mouseX){fXaw += 0.01f * inputState.mouseDeltaY;}
+        if (inputState.mouseY){fYaw -= 0.01f * inputState.mouseDeltaX;}
+               
+        int trueSize = 0;
+
+        // Appliquer la rotation à la direction de vue
+        Vector3d vTarget = {0.0f, 0.0f, 1.0f};  // Direction initiale
+        Mat4x4 matCameraRotX = createRotationMatrix(-1, fXaw); 
+        Mat4x4 matCameraRotY = createRotationMatrix(0, fYaw);  // Rotation Y (yaw)
+        Mat4x4 matCameraRot = multiplyMatrixMatrix(&matCameraRotX, &matCameraRotY);
+        MultiplyMatrixVector(&vTarget, &vLookDir, &matCameraRot);
+        vLookDir = normalize(vLookDir);  // Normaliser après rotation
+        
+        // Point ciblé = position caméra + direction de vue
+        vTarget = addVector(&camera, &vLookDir);
+
+
+
+        Mat4x4 matCam = pointAtMatrix(&camera, &vTarget, &vUp);
+
+        Mat4x4 matView = Matrix_QuickInverse(&matCam);
+
 
         // Matrice de rotation
-        Mat4x4 matRot = {0};
-        matRot.m[0][0] = cos(timeInRad);
-        matRot.m[0][1] = -sin(timeInRad);
-        matRot.m[1][0] = cos(timeInRad) * sin(timeInRad);
-        matRot.m[1][1] = cos(timeInRad) * cos(timeInRad);
-        matRot.m[1][2] = -sin(timeInRad);
-        matRot.m[2][0] = sin(timeInRad) * sin(timeInRad);
-        matRot.m[2][1] = cos(timeInRad) * sin(timeInRad);
-        matRot.m[2][2] = cos(timeInRad);
-        matRot.m[3][3] = 1.0f;
+        Mat4x4 matRotX = createRotationMatrix(-1, timeInRad);
+        Mat4x4 matRotZ = createRotationMatrix(1, timeInRad);
+        Mat4x4 matRotXZ = multiplyMatrixMatrix(&matRotX, &matRotZ);
 
-
-        // Efface l’écran
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
 
-        // Couleur de dessin (noir)
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
         for (size_t i = 0; i < model.count; i++) {
             Triangle3d tri = model.triangles[i];
             Triangle3d triRotated;
             Triangle3d triProjected;
+            Triangle3d triViewed;
 
-            MultiplyMatrixVector(&tri.vertices[0], &triRotated.vertices[0], &matRot);
-            MultiplyMatrixVector(&tri.vertices[1], &triRotated.vertices[1], &matRot);
-            MultiplyMatrixVector(&tri.vertices[2], &triRotated.vertices[2], &matRot);
+            //MultiplyMatrixVector(&tri.vertices[0], &triRotated.vertices[0], &matRotXZ);
+            //MultiplyMatrixVector(&tri.vertices[1], &triRotated.vertices[1], &matRotXZ);
+            //MultiplyMatrixVector(&tri.vertices[2], &triRotated.vertices[2], &matRotXZ);
 
-            MoveTriangle(&triRotated, dx, dy , dz);
+            MoveTriangle(&tri, -0.5f, -0.5f , 8.0f);
             
-            // Calculer la normale et vérifier si la face est visible
-            Vector3d normal = normalize(getNorm(&triRotated));
-            
-            Vector3d toCamera = subVector(&camera, &triRotated.vertices[0]);
+                                    
+            float lightIntensity = computeLightIntensity(&tri, &vLight);
 
-            toCamera = normalize(toCamera);
 
-            float dp = dotProduct(normal, toCamera);
-                // Test de visibilité : si la normale pointe vers la caméra
-            if (dp <= 0.0f) continue;
             
-            
-           
-            float lightIntensity = dotProduct(normal, vLight);
-            
-            if (lightIntensity < 0.0f) lightIntensity = 0.0f;
-            lightIntensity = fabsf(1 - lightIntensity);
-            if (lightIntensity > 0.9)lightIntensity = 0.8f;
-            if (lightIntensity < 0.15f)lightIntensity = 0.2f;
-            
-            
-            
-            MultiplyMatrixVector(&triRotated.vertices[0], &triProjected.vertices[0], &matProj);
-            MultiplyMatrixVector(&triRotated.vertices[1], &triProjected.vertices[1], &matProj);
-            MultiplyMatrixVector(&triRotated.vertices[2], &triProjected.vertices[2], &matProj);
+            if (!isPointingTowardCam(&tri, &camera)){ continue;}
 
-            TriangleRenderData triProjectedRenderData;
-            triProjectedRenderData.tri = triProjected;
-            triProjectedRenderData.lightintensity = lightIntensity;
-            triangleBuffer[trueSize] = triProjectedRenderData;
-            trueSize++;
+
+            
+            MultiplyMatrixVector(&tri.vertices[0], &triViewed.vertices[0], &matView);
+            MultiplyMatrixVector(&tri.vertices[1], &triViewed.vertices[1], &matView);
+            MultiplyMatrixVector(&tri.vertices[2], &triViewed.vertices[2], &matView);
+
+            float depth = (triViewed.vertices[0].z + triViewed.vertices[1].z + triViewed.vertices[2].z) / 3.0f;
+
+            TriangleRenderData triViewedWithRenderData;
+            triViewedWithRenderData.depth = depth;
+            triViewedWithRenderData.lightintensity = lightIntensity;
+            triViewedWithRenderData.tri = triViewed;
+
+            int nClippedTriangles = 0;
+            TriangleRenderData clipped[2];
+            // clip against near plane in view-space (déjà utilisé)
+            nClippedTriangles = Triangle_ClipAgainstPlane(&(Vector3d){.x = 0.0f,.y=0.0f,.z=0.5f},
+             &(Vector3d){.x = 0.0f,.y = 0.0f, .z = 1.0f},
+             &triViewedWithRenderData, &clipped[0], &clipped[1]);
+
+            // Si aucun triangle après clipping, on skip
+            if (nClippedTriangles == 0) continue;
+
+            for (int ci = 0; ci < nClippedTriangles; ci++){
+
+                MultiplyMatrixVector(&clipped[ci].tri.vertices[0], &triProjected.vertices[0], &matProj);
+                MultiplyMatrixVector(&clipped[ci].tri.vertices[1], &triProjected.vertices[1], &matProj);
+                MultiplyMatrixVector(&clipped[ci].tri.vertices[2], &triProjected.vertices[2], &matProj);
+
+                bool outsideXNeg = (triProjected.vertices[0].x < -1.0f) && (triProjected.vertices[1].x < -1.0f) && (triProjected.vertices[2].x < -1.0f);
+                bool outsideXPos = (triProjected.vertices[0].x >  1.0f) && (triProjected.vertices[1].x >  1.0f) && (triProjected.vertices[2].x >  1.0f);
+                bool outsideYNeg = (triProjected.vertices[0].y < -1.0f) && (triProjected.vertices[1].y < -1.0f) && (triProjected.vertices[2].y < -1.0f);
+                bool outsideYPos = (triProjected.vertices[0].y >  1.0f) && (triProjected.vertices[1].y >  1.0f) && (triProjected.vertices[2].y >  1.0f);
+                bool behindCam    = (triProjected.vertices[0].z <= 0.0f) && (triProjected.vertices[1].z <= 0.0f) && (triProjected.vertices[2].z <= 0.0f);
+
+                if (outsideXNeg || outsideXPos || outsideYNeg || outsideYPos || behindCam) {
+                    continue;
+                }
+
+                TriangleRenderData triProjectedRenderData;
+                triProjectedRenderData.tri = triProjected;
+                triProjectedRenderData.lightintensity = clipped[ci].lightintensity;
+                triProjectedRenderData.depth = clipped[ci].depth;
+                triangleBuffer[trueSize] = triProjectedRenderData;
+                trueSize++;
+            }
         }
-        sortTriangleArray(triangleBuffer, trueSize, &camera);
+        sortTriangleArray(triangleBuffer, trueSize);
         for (int i = 0; i < trueSize; ++i){
+            TriangleRenderData triToRaster = triangleBuffer[i];
+            
             DrawTriangle3d(renderer, &triangleBuffer[i], width, height);
         }
         SDL_RenderPresent(renderer);
