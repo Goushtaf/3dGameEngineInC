@@ -5,3 +5,5 @@ You can import your own 3d object into my Engine as long as it's format is .obj.
 There are still a lot of things to do but this version of my project works pretty well! Any advices to improve my code are welcome and have fun!
 
 Feel free to use this code or modify it but please credit me if you do!
+
+(please don't mind the AAAAAAA commit message I was having trouble with git)
