@@ -40,7 +40,7 @@ int main(void) {
     float moveSpeed = 10.0f;
     Light vLight = {
         {0.5f, -1.0f, 1.0f},
-        {-1.0f, 20.0f, 0.0f}
+        {-1.0f, 5.0f, 0.0f}
     };
     Mat4x4 matProj = createProjectionMatrix(fAspectRatio, fFov, fFar, fNear); 
     Vector3d camera = {0.0f, 0.0f, 0.0f}; // Position de la caméra
@@ -145,10 +145,10 @@ int main(void) {
             MultiplyMatrixVector(&tri.vertices[1], &triViewed.vertices[1], &matView);
             MultiplyMatrixVector(&tri.vertices[2], &triViewed.vertices[2], &matView);
 
-            float depth = (triViewed.vertices[0].z + triViewed.vertices[1].z + triViewed.vertices[2].z) / 3.0f;
+            Vector3d avPos = getTriangleAveragePos(&triViewed);
 
             TriangleRenderData triViewedWithRenderData;
-            triViewedWithRenderData.depth = depth;
+            triViewedWithRenderData.depth = magnitude(subVector(&avPos, &vLight.pos));
             triViewedWithRenderData.lightintensity = lightIntensity;
             triViewedWithRenderData.tri = triViewed;
 

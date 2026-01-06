@@ -26,9 +26,9 @@ void DrawTriangle3d(SDL_Renderer *renderer, const TriangleRenderData *tri, int w
     filledTrigonRGBA(renderer, a.x, a.y, b.x, b.y, c.x, c.y, UnNormalizeAlpha(tri->lightintensity), UnNormalizeAlpha(tri->lightintensity), UnNormalizeAlpha(tri->lightintensity), 255);
 
     
-//    DrawLine2d(renderer, &a, &b);
-//    DrawLine2d(renderer, &b, &c);
-//    DrawLine2d(renderer, &a, &c);
+    DrawLine2d(renderer, &a, &b);
+    DrawLine2d(renderer, &b, &c);
+    DrawLine2d(renderer, &a, &c);
 }
 
 float computeLightIntensity(const Triangle3d *tri, const Light *vLight){
@@ -40,7 +40,7 @@ float computeLightIntensity(const Triangle3d *tri, const Light *vLight){
     lightIntensity = fmaxf(0.0f, lightIntensity);       // 0.0 if lightIntensity is negative
 
     lightIntensity = lightIntensity/(distance*distance);
-    lightIntensity = fminf(fmaxf(lightIntensity, 0.2f), 0.8f);
+    lightIntensity = fminf(fmaxf(lightIntensity, 0.1f), 0.9f);
 
     return lightIntensity;
 }
