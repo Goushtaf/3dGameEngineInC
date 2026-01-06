@@ -46,6 +46,8 @@ Vector3d getNorm(const Triangle3d *tri);
 
 Vector3d vectorCrossProduct(const Vector3d *v1, const Vector3d *v2);
 
+Vector3d getTriangleAveragePos(const Triangle3d *tri);
+
 float dotProduct(Vector3d v1, Vector3d v2);
 
 float perpendicularity(Vector3d v1, Vector3d v2);

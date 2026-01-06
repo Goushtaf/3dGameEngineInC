@@ -11,11 +11,15 @@ typedef struct {
     float depth;
 } TriangleRenderData;
 
+typedef struct {
+    Vector3d pos, dir;
+} Light;
+
 void DrawTriangle3d(SDL_Renderer *renderer, const TriangleRenderData *tri, int width, int height);
 float UnNormalizeAlpha(float alpha);
 void DrawLine2d(SDL_Renderer *renderer, const Vector2d *start, const Vector2d *end);
 
-float computeLightIntensity(const Triangle3d *tri, const Vector3d *vLight);
+float computeLightIntensity(const Triangle3d *tri, const Light *vLight);
 bool isPointingTowardCam(const Triangle3d *tri, const Vector3d *cam);
 Mat4x4 createProjectionMatrix(float fAspectRatio, float fFovDeg, float fFar, float fNear);
 Mat4x4 pointAtMatrix(const Vector3d *pos, const Vector3d *target, Vector3d *up);

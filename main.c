@@ -38,7 +38,10 @@ int main(void) {
     float dy = -0.1f;
     float dz = 0.1f;
     float moveSpeed = 10.0f;
-    Vector3d vLight = {1.0f, 1.0f, 0.0f};
+    Light vLight = {
+        {0.5f, -1.0f, 1.0f},
+        {-1.0f, 20.0f, 0.0f}
+    };
     Mat4x4 matProj = createProjectionMatrix(fAspectRatio, fFov, fFar, fNear); 
     Vector3d camera = {0.0f, 0.0f, 0.0f}; // Position de la caméra
     float fYaw = 0.0f;

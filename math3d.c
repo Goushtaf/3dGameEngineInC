@@ -96,6 +96,20 @@ Cube3d initCube(void) {
     return cube;
 }
 
+Vector3d getTriangleAveragePos(const Triangle3d *tri){
+    Vector3d v1, v2, v3;
+    v1 = tri->vertices[0];
+    v2 = tri->vertices[1];
+    v3 = tri->vertices[2];
+    Vector3d avPos = {
+        (v1.x + v2.x + v3.x)/3,
+        (v1.y + v2.y + v3.y)/3,
+        (v1.z + v2.z + v3.z)/3,
+    };
+    return avPos;
+}
+
+
 // Multiplication matrice/vecteur
 void MultiplyMatrixVector(const Vector3d *i, Vector3d *o, const Mat4x4 *m) {
     o->x = i->x * m->m[0][0] + i->y * m->m[1][0] + i->z * m->m[2][0] + m->m[3][0];
@@ -109,6 +123,7 @@ void MultiplyMatrixVector(const Vector3d *i, Vector3d *o, const Mat4x4 *m) {
         o->z /= w;
     }
 }
+
 
 // Convertit coordonnées normalisées en pixels
 Vector2d FromCenteredNormalized(float x, float y, int width, int height){

@@ -26,17 +26,22 @@ void DrawTriangle3d(SDL_Renderer *renderer, const TriangleRenderData *tri, int w
     filledTrigonRGBA(renderer, a.x, a.y, b.x, b.y, c.x, c.y, UnNormalizeAlpha(tri->lightintensity), UnNormalizeAlpha(tri->lightintensity), UnNormalizeAlpha(tri->lightintensity), 255);
 
     
-    DrawLine2d(renderer, &a, &b);
-    DrawLine2d(renderer, &b, &c);
-    DrawLine2d(renderer, &a, &c);
+//    DrawLine2d(renderer, &a, &b);
+//    DrawLine2d(renderer, &b, &c);
+//    DrawLine2d(renderer, &a, &c);
 }
 
-float computeLightIntensity(const Triangle3d *tri, const Vector3d *vLight){
+float computeLightIntensity(const Triangle3d *tri, const Light *vLight){
     Vector3d normal = normalize(getNorm(tri));
-    float lightIntensity = dotProduct(normal, *vLight);
-    lightIntensity = fmaxf(0.0f, lightIntensity);       // clamp bas
-    lightIntensity = fabsf(1.0f - lightIntensity);      // inversion
+    float lightIntensity = dotProduct(normal, vLight->dir);
+    Vector3d avPos = getTriangleAveragePos(tri);
+    float distance = distanceBetween(&avPos, &(vLight->pos));
+
+    lightIntensity = fmaxf(0.0f, lightIntensity);       // 0.0 if lightIntensity is negative
+
+    lightIntensity = lightIntensity/(distance*distance);
     lightIntensity = fminf(fmaxf(lightIntensity, 0.2f), 0.8f);
+
     return lightIntensity;
 }
 bool isPointingTowardCam(const Triangle3d *tri, const Vector3d *cam){
