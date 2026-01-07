@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
 #include <stdbool.h>
-
+#include <stdio.h>
 #include "math3d.h"
 #include "graphics.h"
 #include "loadObjFile.h"
@@ -40,7 +40,7 @@ int main(void) {
     float moveSpeed = 10.0f;
     Light vLight = {
         {0.5f, -1.0f, 1.0f},
-        {-1.0f, 5.0f, 0.0f}
+        {1.0f, 20.0f, 1.0f}
     };
     Mat4x4 matProj = createProjectionMatrix(fAspectRatio, fFov, fFar, fNear); 
     Vector3d camera = {0.0f, 0.0f, 0.0f}; // Position de la caméra
@@ -70,25 +70,35 @@ int main(void) {
   
         handleInput(&inputState);
         Vector3d vForward = mulVector(&vLookDir, moveSpeed * fElapsedTime);
-        Vector3d vUp = {0.0f, -1.0f, 0.0f}; // up vector utilisé pour le strafing
+        Vector3d vUp = {0.0f, 1.0f, 0.0f};
+        Vector3d vDown = {0.0f, -1.0f, 0.0f};
 
         if (inputState.quit){running = false;}
         if (inputState.moveForward){camera = addVector(&camera, &vForward);}
         if (inputState.moveBackward){camera = subVector(&camera, &vForward);}
         if (inputState.moveLeft || inputState.moveRight) {
-            Vector3d vRight = normalize(vectorCrossProduct(&vUp, &vLookDir)); // right = up x forward
+            Vector3d vRight = normalize(vectorCrossProduct(&vUp, &vLookDir));
             Vector3d vStrafe = mulVector(&vRight, moveSpeed * fElapsedTime);
-            if (inputState.moveLeft)  camera = subVector(&camera, &vStrafe);
-            if (inputState.moveRight) camera = addVector(&camera, &vStrafe);
+            if (inputState.moveLeft)  camera = addVector(&camera, &vStrafe);
+            if (inputState.moveRight) camera = subVector(&camera, &vStrafe);
         }
         if (inputState.moveUp){
-            camera = subVector(&vUp, &camera);
-        }
-        if (inputState.moveDown) {
             camera = addVector(&vUp, &camera);
         }
-        if (inputState.mouseX){fXaw += 0.01f * inputState.mouseDeltaY;}
-        if (inputState.mouseY){fYaw -= 0.01f * inputState.mouseDeltaX;}
+        if (inputState.moveDown) {
+            camera = addVector(&vDown, &camera);
+        }
+        if (inputState.mouseX){
+            printf("%f\n", fXaw);
+            fXaw += 0.01f * inputState.mouseDeltaY;
+            if ((fXaw > (M_PI/2 - 0.05f))||(fXaw < (-M_PI/2 + 0.05f)))
+            {
+                fXaw -= 0.01f * inputState.mouseDeltaY;
+            }
+
+            
+        }
+        if (inputState.mouseY){fYaw += 0.01f * inputState.mouseDeltaX;}
                
         int trueSize = 0;
 
@@ -105,7 +115,7 @@ int main(void) {
 
 
 
-        Mat4x4 matCam = pointAtMatrix(&camera, &vTarget, &vUp);
+        Mat4x4 matCam = pointAtMatrix(&camera, &vTarget, &vDown);
 
         Mat4x4 matView = Matrix_QuickInverse(&matCam);
 
