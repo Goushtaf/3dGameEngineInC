@@ -8,7 +8,7 @@
 #include "handleInput.h"
 
 int main(void) {
-    int width = 1280;
+    int width = 2000;
     int height = 1080;
     InputState inputState = {0};
     SDL_Init(SDL_INIT_VIDEO);
@@ -30,13 +30,7 @@ int main(void) {
     float fFar = 1000.0f;
     float fFov = 90.0f;
     float fAspectRatio = (float)height / (float)width;
-    float mouseSensibility = 0.1f;
-    
-
        
-    float dx = -0.1f;
-    float dy = -0.1f;
-    float dz = 0.1f;
     float moveSpeed = 10.0f;
     Light vLight = {
         {0.5f, -1.0f, 1.0f},
@@ -65,9 +59,6 @@ int main(void) {
 
         // Calcul du temps écoulé
         Uint64 now = SDL_GetPerformanceCounter();
-        double time = (double)(now - start) / freq;
-        double timeInRad = time;
-  
         handleInput(&inputState);
         Vector3d vForward = mulVector(&vLookDir, moveSpeed * fElapsedTime);
         Vector3d vUp = {0.0f, 1.0f, 0.0f};
@@ -89,7 +80,6 @@ int main(void) {
             camera = addVector(&vDown, &camera);
         }
         if (inputState.mouseX){
-            printf("%f\n", fXaw);
             fXaw += 0.01f * inputState.mouseDeltaY;
             if ((fXaw > (M_PI/2 - 0.05f))||(fXaw < (-M_PI/2 + 0.05f)))
             {
@@ -121,10 +111,6 @@ int main(void) {
 
 
         // Matrice de rotation
-        Mat4x4 matRotX = createRotationMatrix(-1, timeInRad);
-        Mat4x4 matRotZ = createRotationMatrix(1, timeInRad);
-        Mat4x4 matRotXZ = multiplyMatrixMatrix(&matRotX, &matRotZ);
-
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
 
@@ -132,14 +118,8 @@ int main(void) {
 
         for (size_t i = 0; i < model.count; i++) {
             Triangle3d tri = model.triangles[i];
-            Triangle3d triRotated;
             Triangle3d triProjected;
             Triangle3d triViewed;
-
-            //MultiplyMatrixVector(&tri.vertices[0], &triRotated.vertices[0], &matRotXZ);
-            //MultiplyMatrixVector(&tri.vertices[1], &triRotated.vertices[1], &matRotXZ);
-            //MultiplyMatrixVector(&tri.vertices[2], &triRotated.vertices[2], &matRotXZ);
-
             MoveTriangle(&tri, -0.5f, -0.5f , 8.0f);
             
                                     
@@ -198,9 +178,7 @@ int main(void) {
         }
         sortTriangleArray(triangleBuffer, trueSize);
         for (int i = 0; i < trueSize; ++i){
-            TriangleRenderData triToRaster = triangleBuffer[i];
-            
-            DrawTriangle3d(renderer, &triangleBuffer[i], width, height);
+           DrawTriangle3d(renderer, &triangleBuffer[i], width, height);
         }
         SDL_RenderPresent(renderer);
         SDL_Delay(16); // ≈60 fps
